@@ -78,6 +78,14 @@ class CandleFormer:
 
     # ----------------- основной обработчик -----------------
     def process_trade(self, trade: dict, symbol: str):
+        
+        price = float(trade["price"])
+        qty = float(trade["qty"])
+    
+        # фильтр: не учитываем сделки с нулевой ценой или количеством (иначе сделают Low = 0.0)
+        if price <= 0.0 or qty <= 0.0:
+            return
+    
         ts = self._ensure_utc(trade["timestamp"])
     
         if symbol not in self.current_candles:
@@ -119,6 +127,7 @@ class CandleFormer:
             price = trade["price"]
             candle["H"] = max(candle["H"], price)
             candle["L"] = min(candle["L"], price)
+            
             candle["C"] = price
     
             candle["Volume"] += trade["qty"]
@@ -128,7 +137,9 @@ class CandleFormer:
                 candle["BidVolume"] += trade["qty"]
             candle["Delta"] = candle["AskVolume"] - candle["BidVolume"]
             candle["TradeCount"] += 1
-
+            
+            
+            # print(f"L={candle['L']}")
 
     # ----------------- вывод / интеграция -----------------
     def _emit_close(self, symbol: str, tf: str, candle: dict):
