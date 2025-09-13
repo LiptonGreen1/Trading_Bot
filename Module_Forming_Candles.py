@@ -15,7 +15,8 @@ from typing import List, Dict, Optional
 UTC = datetime.timezone.utc
 
 class CandleFormer:
-    def __init__(self, timeframes: List[str] = ["1m"], start_time: Optional[datetime.datetime] = None):
+    
+    def __init__(self, timeframes: List[str] = ["1m"], start_time: Optional[datetime.datetime] = None, signal_manager=None):
         """
         timeframes: список строк, например ["1m","5m","1h","1d"]
         start_time: момент запуска (если None, берётся текущий UTC). Используется чтобы
@@ -27,6 +28,8 @@ class CandleFormer:
         self.first_allowed_bucket = {tf: self._get_first_allowed_bucket(self.run_start, tf) for tf in timeframes}
         # текущее состояние по символам: {symbol: {tf: candle_or_None}}
         self.current_candles: Dict[str, Dict[str, Optional[dict]]] = {}
+        
+        self.signal_manager = signal_manager
 
     # ----------------- вспомогательные функции -----------------
     def _ensure_utc(self, ts: datetime.datetime) -> datetime.datetime:
@@ -151,3 +154,9 @@ class CandleFormer:
               f"O={candle['O']} H={candle['H']} L={candle['L']} C={candle['C']} "
               f"Ask={candle['AskVolume']}, Bid={candle['BidVolume']} "
               f"Vol={candle['Volume']} Δ={candle['Delta']} trades={candle['TradeCount']}")
+        
+        # хуйнюшка для передачи свечей в следующий модуль с Моделями
+        if self.signal_manager:
+            self.signal_manager.on_candle(symbol, tf, candle)
+        else:
+            print(f"[{symbol.upper()}][{tf}] CLOSE -> {candle}")
